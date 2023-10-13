@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from .models import person
+from .models import User, TradingData
 
 # Create your views here.
 def index(request):
@@ -18,4 +19,16 @@ def new_user(request):
 def show_person(request):
     persons = person.find()
     return HttpResponse(persons)
+
+
+
+# from django.shortcuts import render
+
+def user_dashboard(request):
+    users = User.objects.all()
+    return render(request, 'user_dashboard.html', {'users': users})
+
+def admin_dashboard(request):
+    users = User.objects.all()
+    return render(request, 'admin_dashboard.html', {'users': users})
 
