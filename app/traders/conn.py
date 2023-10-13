@@ -8,7 +8,7 @@ try:
     client = pymongo.MongoClient(url)
 
     """Access the 'projects' database or create it if it doesn't exist"""
-    db = client['projects']
+    db = client['trading_data']
 
     """Optionally, check if the connection was successful"""
     if client.server_info():
