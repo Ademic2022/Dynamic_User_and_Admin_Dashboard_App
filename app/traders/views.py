@@ -3,7 +3,6 @@ from django.shortcuts import render, redirect
 import uuid, json, pymongo
 from .conn import db
 from .trader import Trader
-
 from django.http import JsonResponse
 
 def user_colection(trader_name, db):
