@@ -1,7 +1,8 @@
 import pymongo
 
 """Define the MongoDB connection URL"""
-url = 'mongodb://localhost:27017'
+# url = 'mongodb://localhost:27017'
+url = "mongodb+srv://nodetest:nodetest@ademicnode.enl9bef.mongodb.net/?retryWrites=true&w=majority"
 
 try:
     """Attempt to create a MongoDB client"""
