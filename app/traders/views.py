@@ -30,7 +30,6 @@ def simulate_trading(request, trader_name):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        print(action)
         user_trader_name = trader_name
 
         trader = Trader(user_trader_name)
@@ -40,7 +39,9 @@ def simulate_trading(request, trader_name):
                 simulation_state = trader.get_simulation_state(db)
 
                 if simulation_state == 'running':
-                    return JsonResponse({'status': 'Simulation is already running'}, status=400)
+                    messages.success(request, 'Trading in Progress')
+                    # return JsonResponse({'status': 'Simulation is already running'}, status=400)
+
 
                 """Update the simulation state to 'running' in the database"""
                 trader.set_simulation_state('running', db)
@@ -49,11 +50,12 @@ def simulate_trading(request, trader_name):
                 trader.simulate(db, simulation_duration_minutes)
 
             else:
-                return JsonResponse({'status': 'User not found'}, status=400)
+                messages.success(request, 'User not found')
+                # return JsonResponse({'status': 'User not found'}, status=400)
         elif action == 'stop':
             """Set the simulation state to 'stopped' in the database"""
             trader.set_simulation_state('stopped', db)
-            messages.success(request, 'Trade stopped')
+            messages.success(request, 'Trade activities stopped')
             return redirect('trade')
     """get user collection from database"""
     user_data = user_colection(trader_name, db)
@@ -73,6 +75,7 @@ def lucky_trader(request):
         existing_traders = db.list_collection_names()
         for trader in existing_traders:
             if username.lower() in trader:
+                messages.error(request, 'Username already taken, try again')
                 return redirect('trade')  # Redirect to the 'trade' page if the username is taken
 
         """If the username is available, create a new trader"""
@@ -82,14 +85,15 @@ def lucky_trader(request):
             trader = Trader(trader_name)
             try:
                 trader.store_data(db)
-                print(f"Congratulations {username}, you have been given free $100 to Trade")
+                messages.success(request, f"Congratulations {username}, you have been given free $100 to Trade")
                 return redirect('account', trader_name=trader_name)
 
             except pymongo.errors.ConnectionFailure as e:
                 """Handle any connection errors"""
+                
                 print(f"Connection to MongoDB failed: {e}")
         else:
-            print('Sorry, the maximum number of sponsored users has been reached')
+            messages.error(request, 'Sorry, the maximum number of sponsored users has been reached')
             return redirect('home')
 
     return render(request, 'lucky_trader.html')

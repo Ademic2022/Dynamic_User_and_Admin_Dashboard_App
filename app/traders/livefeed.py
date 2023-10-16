@@ -1,4 +1,3 @@
-# views.py
 from django_sse.views import BaseSseView
 from .trader import Trader
 from .conn import db
@@ -6,7 +5,7 @@ import time
 
 class TraderSSEView(BaseSseView):
     def iterator(self):
-        trader = Trader("trader_hassan_109f")  # Initialize your Trader with a name
+        trader = Trader("trader_hassan_109f")  
         trader.set_simulation_state("running", db)  # Set simulation state to "running"
         
         duration_minutes = 10  # Set the simulation duration
@@ -17,7 +16,7 @@ class TraderSSEView(BaseSseView):
                 trader.total_trades += 1
                 trader.store_data(db)
 
-                # Send data to the client
+                """Send data to the client"""
                 data = {
                     "trader_name": trader.name,
                     "balance": round(trader.balance, 2),
@@ -27,7 +26,7 @@ class TraderSSEView(BaseSseView):
                 time.sleep(60)  # Wait for 60 seconds before the next update
         
         except Exception as e:
-            # Handle exceptions here, such as logging the error
+            """Handle exceptions here, such as logging the error"""
             print(f"Error in SSE view: {e}")
         
         finally:
