@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect
 import uuid, json, pymongo
 from .conn import db
 from .trader import Trader
-from django.http import JsonResponse
+from .graph import generate_profit_loss_graph
+
 
 def user_colection(trader_name, db):
     """Select the collection"""
@@ -11,6 +12,7 @@ def user_colection(trader_name, db):
 
     """Query to get the last document based on timestamp in descending order"""
     last_document = collection.find_one(sort=[("timestamp", -1)])
+    profit = round(last_document['balance'] - 100, 2)
 
     """Access the fields in the last document"""
     if last_document:
@@ -20,6 +22,7 @@ def user_colection(trader_name, db):
             "timestamp": last_document['timestamp'],
             "trader_name": trader_name,
             "trades": last_document['total_trades'],
+            "profit": profit
         }
         return user_datas
     else:
@@ -40,8 +43,6 @@ def simulate_trading(request, trader_name):
 
                 if simulation_state == 'running':
                     messages.success(request, 'Trading in Progress')
-                    # return JsonResponse({'status': 'Simulation is already running'}, status=400)
-
 
                 """Update the simulation state to 'running' in the database"""
                 trader.set_simulation_state('running', db)
@@ -51,15 +52,16 @@ def simulate_trading(request, trader_name):
 
             else:
                 messages.success(request, 'User not found')
-                # return JsonResponse({'status': 'User not found'}, status=400)
+
         elif action == 'stop':
             """Set the simulation state to 'stopped' in the database"""
             trader.set_simulation_state('stopped', db)
             messages.success(request, 'Trade activities stopped')
-            return redirect('trade')
+            return redirect('dashboard')
     """get user collection from database"""
     user_data = user_colection(trader_name, db)
-    return render(request, 'simulate_trading.html', {"trader_name": trader_name, "user_data": user_data})
+    return render(request, 'simulate_trading.html', 
+                  {"trader_name": trader_name, "user_data": user_data})
 
 
 def index(request):
@@ -76,7 +78,7 @@ def lucky_trader(request):
         for trader in existing_traders:
             if username.lower() in trader:
                 messages.error(request, 'Username already taken, try again')
-                return redirect('trade')  # Redirect to the 'trade' page if the username is taken
+                return redirect('dashboard')
 
         """If the username is available, create a new trader"""
         num_traders = len(existing_traders)
@@ -85,7 +87,8 @@ def lucky_trader(request):
             trader = Trader(trader_name)
             try:
                 trader.store_data(db)
-                messages.success(request, f"Congratulations {username}, you have been given free $100 to Trade")
+                messages.success(request, f"Congratulations {username}, 
+                                 you have been given free $100 to Trade")
                 return redirect('account', trader_name=trader_name)
 
             except pymongo.errors.ConnectionFailure as e:
@@ -101,13 +104,14 @@ def lucky_trader(request):
 def account(request, trader_name):
     user_datas = user_colection(trader_name, db)
     if user_datas:
-        return render(request, 'account.html', {"user_datas": user_datas, "trader_name": trader_name})
+        return render(request, 'account.html', 
+                      {"user_datas": user_datas, "trader_name": trader_name})
     else:
         messages.error(request, 'User not found')
         return redirect('home')
 
 
-def trade(request):
+def dashboard(request):
     if request.method == 'POST':
         form_data = request.POST
         account_name = form_data['account_name'].lower()
@@ -115,10 +119,22 @@ def trade(request):
         """Check if the trader's collection exists in the database"""
         if account_name in db.list_collection_names():
             user_datas = user_colection(account_name, db)
-            messages.success(request, 'User Found.')
-            return render(request, 'trade.html', {"account_name":account_name, "user_datas":user_datas})
+            messages.success(request, f"Welcome {account_name}")
+
+            """Check if there's data to plot"""
+            if db[account_name].count_documents({}) > 0:
+                """pass the graph to html template"""
+                graph = generate_profit_loss_graph(db, account_name)
+                return render(request, 'dashboard.html', 
+                              {"account_name": account_name, 
+                               "user_datas": user_datas,
+                               "graph": graph,})
+            else:
+                messages.error(request, 'No data to plot.')
+
         else:
             messages.error(request, 'User not Found.')
     
-    return render(request, "trade.html")
+    return render(request, "dashboard.html")
+
 
