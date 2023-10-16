@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Lucky User{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block page_content %}
   <br>
@@ -32,6 +32,16 @@
           </td>
           <td>{{ user_datas.trades }}</td>
         </tr>
+        <tr>
+          <td>
+           {% if user_datas.profit >= 0 %}Profit{% else %}Loss{% endif %}
+          </td>
+          {% if user_datas.profit >= 0 %}
+          <td style="color: green;">${{ user_datas.profit }}</td>
+          {% else %}
+          <td style="color: red;">${{ user_datas.profit }}</td>
+          {% endif %}
+        </tr>
       </tbody>
     </table>
     <form id="simulation-form" method="POST" action="{% url 'simulate_trading' trader_name=account_name %}">
@@ -43,9 +53,38 @@
           <button class="ui negative button" type="submit" name="action" value="stop">Stop Trading</button>
         </div>
     </form>
-    <!-- Your HTML template -->
-    <!-- <div id="trader-simulation-data"></div> -->
 
+    <div id="profit-loss-graph"></div>
+    <script>
+      // Get the profit/loss data from view
+      var data = {{ graph|safe }};
+    
+      // Extract timestamps and balances from the data dictionary
+      var timestamps = data.timestamps;
+      var balances = data.balances;
+      
+      // Create the Plotly graph
+      var data = [{
+          x: timestamps,
+          y: balances,
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Profit/Loss',
+      }];
+    
+      var layout = {
+          title: 'Profit/Loss vs. Time',
+          xaxis: {
+              title: 'Timestamp',
+          },
+          yaxis: {
+              title: 'Balance',
+          },
+        };
+    
+        Plotly.newPlot('profit-loss-graph', data, layout);
+    </script>
+    
     {% else %}
     <div class="ui blue attached message centered segment">
       <div class="header">
@@ -53,7 +92,7 @@
       </div>
       <p>Fill out the form below to start trading</p>
     </div>
-    <form class="ui form attached fluid centered segment" method="post" action="{% url 'trade' %}">
+    <form class="ui form attached fluid centered segment" method="post" action="{% url 'dashboard' %}">
       {% csrf_token %}
       <div class="field">
         <label for="username">Enter your Account Name</label>
